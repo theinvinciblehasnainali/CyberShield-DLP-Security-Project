@@ -1,87 +1,49 @@
 [
-  {
-    "id": "POL-001",
-    "name": "Data Classification Policy",
-    "description": "Classifies data based on sensitivity levels",
-    "type": "classification",
-    "status": "active",
-    "created_date": "2025-01-15",
-    "last_modified": "2025-12-01",
-    "rules": [
-      "Public: Company announcements",
-      "Internal: Team documents",
-      "Confidential: Client data",
-      "Restricted: Financial records"
-    ],
-    "violations_today": 3,
-    "total_violations": 45
-  },
-  {
-    "id": "POL-002",
-    "name": "Data Transfer Policy",
-    "description": "Controls data transfer to external devices",
-    "type": "transfer",
-    "status": "active",
-    "created_date": "2025-02-20",
-    "last_modified": "2025-11-15",
-    "rules": [
-      "No transfer of confidential data to USB",
-      "External transfers require approval",
-      "Encryption required for external transfers",
-      "Log all data transfers"
-    ],
-    "violations_today": 2,
-    "total_violations": 28
-  },
-  {
-    "id": "POL-003",
-    "name": "Access Control Policy",
-    "description": "Manages user access to sensitive data",
-    "type": "access",
-    "status": "active",
-    "created_date": "2025-03-10",
-    "last_modified": "2025-10-30",
-    "rules": [
-      "Role-based access control",
-      "Least privilege principle",
-      "Regular access reviews",
-      "Multi-factor authentication for admin"
-    ],
-    "violations_today": 1,
-    "total_violations": 12
-  },
-  {
-    "id": "POL-004",
-    "name": "Encryption Policy",
-    "description": "Encryption requirements for sensitive data",
-    "type": "encryption",
-    "status": "active",
-    "created_date": "2025-04-05",
-    "last_modified": "2025-09-20",
-    "rules": [
-      "AES-256 encryption for confidential data",
-      "Encryption at rest and in transit",
-      "Key management procedures",
-      "Regular encryption audits"
-    ],
-    "violations_today": 0,
-    "total_violations": 8
-  },
-  {
-    "id": "POL-005",
-    "name": "Monitoring Policy",
-    "description": "Continuous monitoring of data activities",
-    "type": "monitoring",
-    "status": "active",
-    "created_date": "2025-05-12",
-    "last_modified": "2025-08-25",
-    "rules": [
-      "Real-time monitoring of data access",
-      "Alert on suspicious activities",
-      "Regular audit logs review",
-      "Incident response procedures"
-    ],
-    "violations_today": 5,
-    "total_violations": 67
-  }
+    {
+        "id": "POL-001",
+        "name": "CNIC Protection",
+        "description": "Prevents the leakage of Pakistani National ID numbers.",
+        "type": "sensitive_data",
+        "pattern": "CNIC",
+        "status": "active",
+        "rules": [
+            "Block transfer of 13-digit ID patterns"
+        ],
+        "violations_today": 3,
+        "total_violations": 45
+    },
+    {
+        "id": "POL-002",
+        "name": "Corporate Email Privacy",
+        "description": "Monitors for unauthorized internal email disclosures.",
+        "type": "Communication",
+        "pattern": "Email",
+        "status": "active",
+        "rules": [
+            "Log all detected email addresses in files"
+        ],
+        "violations_today": 2,
+        "total_violations": 28
+    },
+    {
+        "id": "POL-003",
+        "name": "Financial Data (Credit Cards)",
+        "description": "Detects 16-digit credit card number patterns.",
+        "type": "Financial",
+        "pattern": "CreditCard",
+        "status": "active",
+        "rules": [
+            "Encryption required for financial strings"
+        ],
+        "violations_today": 0,
+        "total_violations": 12
+    },
+    {
+        "id": "POL-3046",
+        "name": "Phone Number",
+        "type": "sensitive_data",
+        "pattern": "Phone",
+        "description": "Detect for a phone number.",
+        "status": "active"
+    }
 ]

@@ -1,102 +1,293 @@
 [
-  {
-    "id": 1,
-    "name": "Full System Scan",
-    "type": "deep",
-    "start_time": "2025-12-19 09:00:00",
-    "end_time": "2025-12-19 09:45:00",
-    "duration": "45m",
-    "files_scanned": 12456,
-    "threats_found": 12,
-    "status": "completed",
-    "severity": "high",
-    "details": {
-      "malware_files": 3,
-      "sensitive_data": 7,
-      "policy_violations": 2,
-      "encrypted_files": 245
+    {
+        "id": 31,
+        "name": "test_files",
+        "type": "quick",
+        "start_time": "22:03:25",
+        "files_scanned": 0,
+        "threats_found": 0,
+        "status": "completed",
+        "path": "./test_files"
     },
-    "path": "/",
-    "scanned_by": "system"
-  },
-  {
-    "id": 2,
-    "name": "Documents Folder Scan",
-    "type": "targeted",
-    "start_time": "2025-12-19 11:30:00",
-    "end_time": "2025-12-19 11:45:00",
-    "duration": "15m",
-    "files_scanned": 3456,
-    "threats_found": 5,
-    "status": "completed",
-    "severity": "medium",
-    "details": {
-      "malware_files": 0,
-      "sensitive_data": 5,
-      "policy_violations": 0,
-      "encrypted_files": 120
+    {
+        "id": 30,
+        "name": "userfinance.txt",
+        "type": "Live",
+        "start_time": "21:40:45",
+        "files_scanned": 1,
+        "threats_found": 6,
+        "status": "completed",
+        "path": "home\\user\\documents\\financial\\userfinance.txt"
     },
-    "path": "/home/user/documents",
-    "scanned_by": "admin"
-  },
-  {
-    "id": 3,
-    "name": "Database Backup Scan",
-    "type": "quick",
-    "start_time": "2025-12-19 14:00:00",
-    "end_time": "2025-12-19 14:05:00",
-    "duration": "5m",
-    "files_scanned": 45,
-    "threats_found": 1,
-    "status": "completed",
-    "severity": "critical",
-    "details": {
-      "malware_files": 0,
-      "sensitive_data": 1,
-      "policy_violations": 0,
-      "encrypted_files": 45
+    {
+        "id": 29,
+        "name": "documents",
+        "type": "quick",
+        "start_time": "21:40:43",
+        "files_scanned": 1,
+        "threats_found": 1,
+        "status": "completed",
+        "path": "./home/user/documents"
     },
-    "path": "/backup/database",
-    "scanned_by": "system"
-  },
-  {
-    "id": 4,
-    "name": "Network Shares Scan",
-    "type": "deep",
-    "start_time": "2025-12-19 15:30:00",
-    "end_time": "2025-12-19 16:30:00",
-    "duration": "60m",
-    "files_scanned": 23456,
-    "threats_found": 23,
-    "status": "completed",
-    "severity": "high",
-    "details": {
-      "malware_files": 8,
-      "sensitive_data": 12,
-      "policy_violations": 3,
-      "encrypted_files": 1560
+    {
+        "id": 28,
+        "name": "New Microsoft Excel Worksheet.xlsx",
+        "type": "Live",
+        "start_time": "21:39:56",
+        "files_scanned": 1,
+        "threats_found": 6,
+        "status": "completed",
+        "path": "home\\downloads\\temp\\New Microsoft Excel Worksheet.xlsx"
     },
-    "path": "/network/shares",
-    "scanned_by": "security_team"
-  },
-  {
-    "id": 5,
-    "name": "Scheduled Daily Scan",
-    "type": "quick",
-    "start_time": "2025-12-19 03:00:00",
-    "end_time": "2025-12-19 03:30:00",
-    "duration": "30m",
-    "files_scanned": 8567,
-    "threats_found": 3,
-    "status": "completed",
-    "severity": "low",
-    "details": {
-      "malware_files": 1,
-      "sensitive_data": 2,
-      "policy_violations": 0,
-      "encrypted_files": 345
+    {
+        "id": 27,
+        "name": "userfinance.txt",
+        "type": "Live",
+        "start_time": "21:19:12",
+        "files_scanned": 1,
+        "threats_found": 6,
+        "status": "completed",
+        "path": "test_files\\userfinance.txt"
     },
-    "path": "/",
-    "scanned_by": "system"
-  }
+    {
+        "id": 26,
+        "name": "New Microsoft Excel Worksheet.xlsx",
+        "type": "Live",
+        "start_time": "21:18:49",
+        "files_scanned": 1,
+        "threats_found": 6,
+        "status": "completed",
+        "path": "home\\downloads\\temp\\New Microsoft Excel Worksheet.xlsx"
+    },
+    {
+        "id": 25,
+        "name": "userfinance.txt",
+        "type": "Live",
+        "start_time": "21:06:35",
+        "files_scanned": 1,
+        "threats_found": 6,
+        "status": "completed",
+        "path": "test_files\\userfinance.txt"
+    },
+    {
+        "id": 24,
+        "name": "New Microsoft Excel Worksheet.xlsx",
+        "type": "Live",
+        "start_time": "21:05:56",
+        "files_scanned": 1,
+        "threats_found": 6,
+        "status": "completed",
+        "path": "home\\downloads\\temp\\New Microsoft Excel Worksheet.xlsx"
+    },
+    {
+        "id": 23,
+        "name": "~$New Microsoft Excel Worksheet.xlsx",
+        "type": "Live",
+        "start_time": "21:05:31",
+        "files_scanned": 1,
+        "threats_found": 0,
+        "status": "completed",
+        "path": "home\\downloads\\temp\\~$New Microsoft Excel Worksheet.xlsx"
+    },
+    {
+        "id": 22,
+        "name": "~$New Microsoft Excel Worksheet.xlsx",
+        "type": "Live",
+        "start_time": "21:05:29",
+        "files_scanned": 1,
+        "threats_found": 0,
+        "status": "completed",
+        "path": "home\\downloads\\temp\\~$New Microsoft Excel Worksheet.xlsx"
+    },
+    {
+        "id": 21,
+        "name": "=== USER FINANCIAL RECORDS ===.txt",
+        "type": "Live",
+        "start_time": "21:05:01",
+        "files_scanned": 1,
+        "threats_found": 6,
+        "status": "completed",
+        "path": "home\\network\\shares\\projects\\=== USER FINANCIAL RECORDS ===.txt"
+    },
+    {
+        "id": 20,
+        "name": "=== USER FINANCIAL RECORDS ===.txt",
+        "type": "Live",
+        "start_time": "21:04:25",
+        "files_scanned": 1,
+        "threats_found": 6,
+        "status": "completed",
+        "path": "home\\network\\shares\\projects\\=== USER FINANCIAL RECORDS ===.txt"
+    },
+    {
+        "id": 19,
+        "name": "New Microsoft Excel Worksheet.xlsx",
+        "type": "quick",
+        "start_time": "20:49:25",
+        "files_scanned": 0,
+        "threats_found": 0,
+        "status": "completed"
+    },
+    {
+        "id": 18,
+        "name": "~$New Microsoft Excel Worksheet.xlsx",
+        "type": "quick",
+        "start_time": "20:49:12",
+        "files_scanned": 0,
+        "threats_found": 0,
+        "status": "completed"
+    },
+    {
+        "id": 17,
+        "name": "~$New Microsoft Excel Worksheet.xlsx",
+        "type": "quick",
+        "start_time": "20:49:09",
+        "files_scanned": 0,
+        "threats_found": 0,
+        "status": "completed"
+    },
+    {
+        "id": 16,
+        "name": "userfinance.txt",
+        "type": "quick",
+        "start_time": "20:45:36",
+        "files_scanned": 0,
+        "threats_found": 0,
+        "status": "completed"
+    },
+    {
+        "id": 15,
+        "name": "userfinance.txt",
+        "type": "quick",
+        "start_time": "20:45:33",
+        "files_scanned": 0,
+        "threats_found": 0,
+        "status": "completed"
+    },
+    {
+        "id": 14,
+        "name": "test_files",
+        "type": "quick",
+        "start_time": "20:12:50",
+        "files_scanned": 1,
+        "threats_found": 0,
+        "status": "completed"
+    },
+    {
+        "id": 13,
+        "name": "downloads",
+        "type": "quick",
+        "start_time": "20:10:09",
+        "files_scanned": 1,
+        "threats_found": 1,
+        "status": "completed"
+    },
+    {
+        "id": 12,
+        "name": "test_files",
+        "type": "quick",
+        "start_time": "20:10:02",
+        "files_scanned": 1,
+        "threats_found": 0,
+        "status": "completed"
+    },
+    {
+        "id": 11,
+        "name": "downloads",
+        "type": "quick",
+        "start_time": "20:05:45",
+        "files_scanned": 1,
+        "threats_found": 1,
+        "status": "completed"
+    },
+    {
+        "id": 10,
+        "name": "financial",
+        "type": "quick",
+        "start_time": "20:04:48",
+        "files_scanned": 1,
+        "threats_found": 1,
+        "status": "completed"
+    },
+    {
+        "id": 9,
+        "name": "test_files",
+        "type": "quick",
+        "start_time": "20:00:57",
+        "files_scanned": 1,
+        "threats_found": 0,
+        "status": "completed"
+    },
+    {
+        "id": 8,
+        "name": "financial",
+        "type": "deep",
+        "start_time": "20:00:36",
+        "files_scanned": 1,
+        "threats_found": 1,
+        "status": "completed"
+    },
+    {
+        "id": 7,
+        "name": "downloads",
+        "type": "quick",
+        "start_time": "19:59:59",
+        "files_scanned": 1,
+        "threats_found": 1,
+        "status": "completed"
+    },
+    {
+        "id": 6,
+        "name": "test_files",
+        "type": "quick",
+        "start_time": "19:59:24",
+        "files_scanned": 1,
+        "threats_found": 0,
+        "status": "completed"
+    },
+    {
+        "id": 5,
+        "name": "financial",
+        "type": "quick",
+        "start_time": "19:53:51",
+        "files_scanned": 1,
+        "threats_found": 1,
+        "status": "completed"
+    },
+    {
+        "id": 4,
+        "name": "financial",
+        "type": "quick",
+        "start_time": "19:53:39",
+        "files_scanned": 1,
+        "threats_found": 1,
+        "status": "completed"
+    },
+    {
+        "id": 3,
+        "name": "test_files",
+        "type": "quick",
+        "start_time": "19:53:25",
+        "files_scanned": 1,
+        "threats_found": 0,
+        "status": "completed"
+    },
+    {
+        "id": 2,
+        "name": "test_files",
+        "type": "quick",
+        "start_time": "19:53:18",
+        "files_scanned": 1,
+        "threats_found": 0,
+        "status": "completed"
+    },
+    {
+        "id": 1,
+        "name": "test_files",
+        "type": "quick",
+        "start_time": "19:53:06",
+        "files_scanned": 1,
+        "threats_found": 0,
+        "status": "completed"
+    }
 ]

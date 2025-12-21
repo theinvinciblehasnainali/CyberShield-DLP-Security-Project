@@ -152,45 +152,85 @@
 
 {% block extra_js %}
 <script>
-    // View threat details
+    let currentThreatId = null; // Track which threat is open in the modal
+
+    // 1. VIEW THREAT DETAILS
     document.querySelectorAll('.view-threat').forEach(btn => {
         btn.addEventListener('click', function() {
-            const threatId = this.dataset.id;
-            // Simulate loading threat details
+            currentThreatId = this.dataset.id; 
+            const row = this.closest('tr');
+            const type = row.cells[1].innerText;
+            const file = row.cells[2].querySelector('div').innerText;
+            const path = row.cells[2].querySelector('small').innerText;
+            
             const threatDetails = `
-                <h6>Threat ID: ${threatId}</h6>
-                <p><strong>Type:</strong> Malware Detection</p>
-                <p><strong>File:</strong> suspicious_file.exe</p>
-                <p><strong>Path:</strong> /downloads/temp</p>
-                <p><strong>Severity:</strong> Critical</p>
-                <p><strong>Detection Rule:</strong> Malware Signature DB0123</p>
-                <p><strong>Confidence:</strong> 99%</p>
-                <p><strong>Action Taken:</strong> File quarantined, system scanned</p>
-                <p><strong>Recommendation:</strong> Review system logs, update antivirus</p>
+                <div class="alert alert-warning">
+                    <h6><i class="bi bi-exclamation-octagon"></i> ACTION REQUIRED: ${currentThreatId}</h6>
+                    <hr>
+                    <p><strong>DLP Violation:</strong> ${type}</p>
+                    <p><strong>Target File:</strong> ${file}</p>
+                    <p><strong>Full Path:</strong> <code>${path}</code></p>
+                    <p class="mb-0 text-danger"><strong>Risk:</strong> This file contains unauthorized sensitive data and violates company policy.</p>
+                </div>
             `;
             document.getElementById('threatDetails').innerHTML = threatDetails;
             new bootstrap.Modal(document.getElementById('threatModal')).show();
         });
     });
-    
-    // Resolve threat
+
+    // 2. TAKE ACTION (DELETE FILE)
+    document.getElementById('takeAction').addEventListener('click', function() {
+        if (!currentThreatId) return;
+
+        if (confirm("Are you sure? This will PERMANENTLY DELETE the file from the system to prevent a data leak.")) {
+            fetch(`/api/threats/${currentThreatId}/take-action`, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    alert(data.message);
+                    location.reload(); 
+                } else {
+                    alert("Error: " + data.message);
+                }
+            });
+        }
+    });
+
+    // 3. RESOLVE THREAT (MARK WITHOUT DELETING)
     document.querySelectorAll('.resolve-threat').forEach(btn => {
         btn.addEventListener('click', function() {
-            if (confirm('Mark this threat as resolved?')) {
-                const row = this.closest('tr');
-                const statusBadge = row.querySelector('td:nth-child(6) .badge');
-                statusBadge.className = 'badge bg-info';
-                statusBadge.textContent = 'Resolved';
-                alert('Threat marked as resolved!');
+            const threatId = this.dataset.id;
+            if (confirm(`Mark Threat ${threatId} as resolved?`)) {
+                fetch(`/api/threats/${threatId}/resolve`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        const row = this.closest('tr');
+                        const statusCell = row.querySelector('td:nth-child(6)');
+                        statusCell.innerHTML = '<span class="badge bg-info">Resolved</span>';
+                        alert('Status updated to Resolved');
+                    }
+                });
             }
         });
     });
-    
-    // Export threats
-    document.getElementById('exportThreats').addEventListener('click', function() {
-        alert('Exporting threats data... This would download a CSV file.');
-        // In a real system, this would trigger a download
-        window.location.href = '/api/report/generate?type=threats&format=csv';
+
+    // 4. DELETE RECORD (FROM TABLE ONLY)
+    document.querySelectorAll('.delete-threat').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const threatId = this.dataset.id;
+            if (confirm('Permanently delete this threat record?')) {
+                fetch(`/api/threats/${threatId}/delete`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        const row = this.closest('tr');
+                        row.classList.add('animate__animated', 'animate__fadeOutRight');
+                        setTimeout(() => row.remove(), 500);
+                    }
+                });
+            }
+        });
     });
 </script>
 {% endblock %}

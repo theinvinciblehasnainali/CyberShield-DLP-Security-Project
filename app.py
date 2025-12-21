@@ -1,12 +1,30 @@
-from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
+from engine import perform_real_scan
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, session, redirect, url_for
 import json
 from datetime import datetime, timedelta
 import random
 import os
 import csv
 import io
+from fpdf import FPDF
+from flask import make_response
+from flask_socketio import SocketIO, emit
+from functools import wraps
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
 
 app = Flask(__name__)
+app.secret_key = "dlp_security_secret_key_hasnain"
+ADMIN_USER = "hasnain"
+ADMIN_PASS = "admin123"
+
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Custom Jinja2 filters
 def intcomma(value):
@@ -54,6 +72,15 @@ def load_data():
     
     return scans_data, threats_data, users_data, policies_data
 
+def save_data(filename, data):
+    """Saves a list of dictionaries to a JSON file in the data directory"""
+    data_dir = os.path.join(os.path.dirname(__file__), 'data')
+    try:
+        with open(os.path.join(data_dir, filename), 'w') as f:
+            json.dump(data, f, indent=4)
+    except Exception as e:
+        print(f"❌ Error saving to {filename}: {e}")
+
 # Load initial data
 SCANS_DATA, THREATS_DATA, USERS_DATA, POLICIES_DATA = load_data()
 
@@ -73,7 +100,28 @@ SECURITY_ALERTS = [
 
 # ============ MAIN PAGES ============
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if username == ADMIN_USER and password == ADMIN_PASS:
+            session["logged_in"] = True
+            return redirect(url_for('index'))
+        else:
+            error = "Invalid username or password. Please try again."
+            
+    return render_template('login.html', error=error)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     """Main dashboard page"""
     # Calculate statistics
@@ -94,41 +142,60 @@ def index():
                          recent_threats=recent_threats)
 
 @app.route('/scanner')
+@login_required
 def scanner():
-    """Content scanner page"""
-    return render_template('scanner.html', scans=SCANS_DATA)
+    # Convert to int to be safe, and use .get() to avoid crashes
+    total_files = sum(int(scan.get('files_scanned', 0)) for scan in SCANS_DATA)
+    
+    # Debug print to your terminal so you can see the math happening
+    print(f"DEBUG: Calculating total from {len(SCANS_DATA)} scans. Result: {total_files}")
+    
+    return render_template('scanner.html', 
+                           scans=SCANS_DATA, 
+                           total_scans_count=total_files)
 
 @app.route('/monitor')
+@login_required
 def monitor():
-    """Security monitor page"""
-    return render_template('monitor.html', alerts=SECURITY_ALERTS, threats=THREATS_DATA[:10])
+    """Security monitor page showing persistent alerts"""
+    # 1. We take the latest 10 threats from our JSON-backed list
+    # 2. We map them to 'alerts' so monitor.html can loop through them
+    return render_template('monitor.html', 
+                           alerts=THREATS_DATA[:10], 
+                           threats=THREATS_DATA[:10])
 
 @app.route('/alerts')
+@login_required
 def alerts():
     """Alerts center page"""
     return render_template('alerts.html', alerts=SECURITY_ALERTS, threats=THREATS_DATA)
 
 @app.route('/policies')
+@login_required
 def policies():
     """Policy management page"""
     return render_template('policies.html', policies=POLICIES_DATA)
 
 @app.route('/reports')
+@login_required
 def reports():
     """Reports page"""
     return render_template('reports.html')
 
 @app.route('/api-testing')
+@login_required
 def api_testing():
     """API testing console"""
     return render_template('api_testing.html')
 
 @app.route('/threats')
+@login_required
 def threats():
     """Threat management page"""
     return render_template('threats.html', threats=THREATS_DATA)
 
 @app.route('/users')
+@login_required
 def users():
     """User management page"""
     return render_template('users.html', users=USERS_DATA)
@@ -136,31 +203,37 @@ def users():
 # ============ DOCUMENTATION PAGES ============
 
 @app.route('/docs')
+@login_required
 def docs_index():
     """Documentation index"""
     return render_template('docs_index.html')
 
 @app.route('/docs/scanner')
+@login_required
 def scanner_docs():
     """Scanner documentation"""
     return render_template('scanner_docs.html')
 
 @app.route('/docs/monitor')
+@login_required
 def monitor_docs():
     """Monitor documentation"""
     return render_template('monitor_docs.html')
 
 @app.route('/docs/policies')
+@login_required
 def policies_docs():
     """Policies documentation"""
     return render_template('policies_docs.html')
 
 @app.route('/docs/dashboard')
+@login_required
 def dashboard_docs():
     """Dashboard documentation"""
     return render_template('dashboard_docs.html')
 
 @app.route('/docs/api')
+@login_required
 def api_docs():
     """API documentation"""
     return render_template('api_docs.html')
@@ -169,107 +242,55 @@ def api_docs():
 
 @app.route('/api/report/generate', methods=['POST'])
 def generate_report():
-    """Generate and download reports"""
     data = request.json
     report_type = data.get('type', 'daily')
-    format_type = data.get('format', 'pdf')
-    
-    # Generate report content based on type
-    if report_type == 'daily':
-        content = generate_daily_report()
-    elif report_type == 'weekly':
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"dlp_report_{report_type}_{timestamp}.pdf"
+
+    # Get content safely
+    if report_type == 'weekly':
         content = generate_weekly_report()
     elif report_type == 'security':
         content = generate_security_report()
     else:
-        content = generate_custom_report(report_type)
-    
-    # Create filename
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"dlp_report_{report_type}_{timestamp}"
-    
-    if format_type == 'csv':
-        filename += '.csv'
-        # Create CSV response
-        output = io.StringIO()
-        writer = csv.writer(output)
+        content = generate_daily_report()
+
+    try:
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Courier", size=10)
+
+        # Ensure content is safe for PDF
+        clean_content = content.encode('latin-1', 'replace').decode('latin-1')
+        pdf.multi_cell(0, 5, clean_content)
+
+        # 1. Capture the bytes
+        pdf_bytes = pdf.output() 
         
-        # Write header
-        writer.writerow(['DLP Security Report', report_type, timestamp])
-        writer.writerow([])
+        # 2. Create the buffer using the 'io' module we just imported
+        buffer = io.BytesIO(bytes(pdf_bytes))
         
-        # Write scans data
-        writer.writerow(['SCAN HISTORY'])
-        writer.writerow(['ID', 'Name', 'Type', 'Files', 'Threats', 'Severity', 'Date'])
-        for scan in SCANS_DATA:
-            writer.writerow([
-                scan['id'],
-                scan['name'],
-                scan['type'],
-                scan['files_scanned'],
-                scan['threats_found'],
-                scan['severity'],
-                scan['start_time']
-            ])
-        
-        writer.writerow([])
-        writer.writerow(['THREATS DETECTED'])
-        writer.writerow(['ID', 'Type', 'File', 'Severity', 'Status', 'Date'])
-        for threat in THREATS_DATA:
-            writer.writerow([
-                threat['id'],
-                threat['type'],
-                threat['file_name'],
-                threat['severity'],
-                threat['status'],
-                threat['date_detected']
-            ])
-        
-        # Prepare response
-        output.seek(0)
         return send_file(
-            io.BytesIO(output.getvalue().encode('utf-8')),
-            mimetype='text/csv',
+            buffer,
+            mimetype='application/pdf',
             as_attachment=True,
             download_name=filename
         )
-    
-    elif format_type == 'json':
-        filename += '.json'
-        report_data = {
-            'report_type': report_type,
-            'generated_at': datetime.now().isoformat(),
-            'summary': {
-                'total_scans': len(SCANS_DATA),
-                'total_threats': len(THREATS_DATA),
-                'total_users': len(USERS_DATA),
-                'active_policies': len([p for p in POLICIES_DATA if p['status'] == 'active'])
-            },
-            'scans': SCANS_DATA[:10],
-            'threats': THREATS_DATA[:10],
-            'policies': POLICIES_DATA
-        }
         
-        return send_file(
-            io.BytesIO(json.dumps(report_data, indent=2).encode('utf-8')),
-            mimetype='application/json',
-            as_attachment=True,
-            download_name=filename
-        )
-    
-    else:  # PDF or other formats (returning text for demo)
-        filename += '.txt'
-        return send_file(
-            io.BytesIO(content.encode('utf-8')),
-            mimetype='text/plain',
-            as_attachment=True,
-            download_name=filename
-        )
+    except Exception as e:
+        print(f"❌ PDF LOGIC ERROR: {e}")
+        return jsonify({"error": str(e)}), 500
 
 def generate_daily_report():
-    """Generate daily report content"""
+    """Generate daily report content with crash-proof data fetching"""
     today = datetime.now().strftime('%Y-%m-%d')
     
+    # 1. Safe Header Calculations
+    total_scans = len(SCANS_DATA)
+    # Safely sum threats, defaulting to 0 if key is missing
+    total_threats = sum(scan.get('threats_found', 0) for scan in SCANS_DATA)
+    active_policies = len([p for p in POLICIES_DATA if p.get('status') == 'active'])
+
     report = f"""
     DLP SECURITY SYSTEM - DAILY REPORT
     ===================================
@@ -277,24 +298,33 @@ def generate_daily_report():
     
     EXECUTIVE SUMMARY
     -----------------
-    Total Scans Today: {len(SCANS_DATA)}
-    Total Threats Detected: {sum(scan['threats_found'] for scan in SCANS_DATA)}
-    Active Policies: {len([p for p in POLICIES_DATA if p['status'] == 'active'])}
+    Total Scans Today: {total_scans}
+    Total Threats Detected: {total_threats}
+    Active Policies: {active_policies}
     System Health: Excellent
     
     SCAN ACTIVITIES
     ---------------
     """
     
+    # 2. Safe Scan Loop
     for scan in SCANS_DATA:
+        s_name = scan.get('name', 'Unknown Scan')
+        s_type = scan.get('type', 'Manual')
+        s_files = scan.get('files_scanned', 0)
+        s_threats = scan.get('threats_found', 0)
+        s_duration = scan.get('duration', 'N/A')
+        s_status = scan.get('status', 'Completed')
+        s_path = scan.get('path', 'N/A')
+
         report += f"""
-    Scan: {scan['name']}
-      Type: {scan['type']}
-      Files: {scan['files_scanned']:,}
-      Threats: {scan['threats_found']}
-      Duration: {scan['duration']}
-      Status: {scan['status'].upper()}
-      Path: {scan['path']}
+    Scan: {s_name}
+      Type: {s_type}
+      Files: {s_files:,}
+      Threats: {s_threats}
+      Duration: {s_duration}
+      Status: {str(s_status).upper()}
+      Path: {s_path}
     """
     
     report += """
@@ -302,14 +332,25 @@ def generate_daily_report():
     ---------------
     """
     
+    # 3. Safe Threat Loop (The part that was crashing)
     for threat in THREATS_DATA[:10]:
+        t_id = threat.get('id', 'N/A')
+        t_type = threat.get('type', 'Unknown')
+        
+        # Smart fallback: Try 'file_name', if missing try 'file_path', else 'Unknown'
+        t_file = threat.get('file_name', threat.get('file_path', 'Unknown File'))
+        
+        t_sev = threat.get('severity', 'Low')
+        t_status = threat.get('status', 'Open')
+        t_action = threat.get('action_taken', 'Logged')
+
         report += f"""
-    Threat: {threat['id']}
-      Type: {threat['type']}
-      File: {threat['file_name']}
-      Severity: {threat['severity'].upper()}
-      Status: {threat['status']}
-      Action: {threat['action_taken']}
+    Threat: {t_id}
+      Type: {t_type}
+      File: {t_file}
+      Severity: {str(t_sev).upper()}
+      Status: {t_status}
+      Action: {t_action}
     """
     
     report += """
@@ -360,45 +401,127 @@ def api_health():
         }
     })
 
+
 @app.route('/api/scan', methods=['POST'])
 def api_scan():
-    """Start a scan"""
     data = request.json
+    raw_path = data.get('path').strip() if data.get('path') else "test_files"
+    scan_path = os.path.abspath(raw_path) 
     scan_type = data.get('type', 'quick')
-    scan_path = data.get('path', '/')
-    
-    # Create new scan record
-    scan_id = len(SCANS_DATA) + 1
+
+    if not os.path.exists(scan_path):
+        return jsonify({"status": "error", "message": "Path not found"}), 400
+
+    # 1. IMPORT BOTH FUNCTIONS
+    from engine import perform_real_scan, scan_file_content
+
+    # 2. DECIDE HOW TO SCAN
+    if os.path.isfile(scan_path):
+        # If it's a single file (from Monitor), use scan_file_content directly
+        findings = scan_file_content(scan_path, POLICIES_DATA)
+        results = {
+            "files_scanned": 1,
+            "threats_found": len(findings) if findings else 0,
+            "details": [{"file_path": scan_path, "leaks": findings}] if findings else []
+        }
+        print(f"--- MONITOR DEBUG: Scanned single file. Threats: {results['threats_found']} ---")
+    else:
+        # If it's a folder (from Manual Scanner), use perform_real_scan
+        results = perform_real_scan(scan_path, POLICIES_DATA)
+        print(f"--- SCANNER DEBUG: Scanned folder. Threats: {results['threats_found']} ---")
+
+    # 3. Create the Scan Record
     new_scan = {
-        "id": scan_id,
-        "name": f"{scan_type.capitalize()} Scan",
+        "id": len(SCANS_DATA) + 1,
+        "name": os.path.basename(scan_path) or "Test Folder",
         "type": scan_type,
-        "start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        "end_time": (datetime.now() + timedelta(minutes=random.randint(5, 60))).strftime('%Y-%m-%d %H:%M:%S'),
-        "duration": f"{random.randint(5, 60)}m",
-        "files_scanned": random.randint(100, 10000),
-        "threats_found": random.randint(0, 20),
-        "status": "in_progress",
-        "severity": random.choice(["low", "medium", "high", "critical"]),
-        "details": {
-            "malware_files": random.randint(0, 5),
-            "sensitive_data": random.randint(0, 10),
-            "policy_violations": random.randint(0, 5),
-            "encrypted_files": random.randint(50, 500)
-        },
-        "path": scan_path,
-        "scanned_by": "api_user"
+        "start_time": datetime.now().strftime('%H:%M:%S'),
+        "files_scanned": results["files_scanned"],
+        "threats_found": results["threats_found"],
+        "status": "completed",
+        "path": raw_path # Added this for the Monitor UI
     }
-    
     SCANS_DATA.insert(0, new_scan)
-    
-    return jsonify({
-        "scan_id": scan_id,
-        "status": "started",
-        "message": f"Scan {scan_id} started successfully",
-        "estimated_completion": "5-60 minutes",
-        "scan_details": new_scan
+    save_data('sample_scans.json', SCANS_DATA)
+
+    # 4. Process Threats
+    if results["threats_found"] > 0:
+        for detail in results.get("details", []):
+            if detail.get("leaks"):
+                new_threat = {
+                    "id": f"TR-{random.randint(1000, 9999)}",
+                    "type": detail["leaks"][0]["type"],
+                    "file_name": os.path.basename(detail["file_path"]),
+                    "file_path": detail["file_path"],
+                    "severity": "critical",
+                    "status": "open",
+                    "date_detected": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+                THREATS_DATA.insert(0, new_threat)
+        
+        save_data('threats.json', THREATS_DATA)
+
+    # 5. Broadcast to ALL pages (Dashboard + Monitor)
+    socketio.emit('new_scan', new_scan) 
+    socketio.emit('update_stats', {
+        "total_scans": sum(int(s.get('files_scanned', 0)) for s in SCANS_DATA),
+        "total_threats": len([t for t in THREATS_DATA if t['status'] == 'open'])
     })
+
+    return jsonify({"status": "success", "threats_found": results["threats_found"]})
+
+@app.route('/api/dashboard-data')
+def dashboard_data():
+    """Returns the latest scan and threat data as JSON"""
+    return jsonify({
+        "total_scans": len(SCANS_DATA),
+        "total_threats": len([t for t in THREATS_DATA if t['status'] == 'open']),
+        "recent_scans": SCANS_DATA[:5],
+        "recent_threats": THREATS_DATA[:5]
+    })
+
+# Create a global list for live notifications
+LIVE_NOTIFICATIONS = []
+
+@app.route('/api/monitor-alert', methods=['POST'])
+def monitor_alert():
+    data = request.json
+    path = data.get('path')
+    
+    # Run the real scan logic
+    from engine import perform_real_scan
+    results = perform_real_scan(os.path.dirname(path))
+    
+    # Find the specific threat for this file
+    threat_found = next((t for t in results["details"] if t["file_path"] == path), None)
+    
+    if threat_found:
+        new_threat = {
+            "id": f"TR-{random.randint(1000, 9999)}",
+            "type": threat_found["leaks"][0]["type"],
+            "file_path": path,
+            "severity": "Critical",
+            "status": "open",
+            "date_detected": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "action_taken": "Blocked"
+        }
+        THREATS_DATA.insert(0, new_threat)
+        save_data('threats.json', THREATS_DATA)
+        
+        # --- WEB SOCKET PUSH ---
+        # This tells the dashboard to show a popup and update the table
+        socketio.emit('critical_alert', new_threat)
+        
+    return jsonify({"status": "received"})
+
+@app.route('/api/history/clear', methods=['POST'])
+def clear_history():
+    global SCANS_DATA, THREATS_DATA
+    SCANS_DATA = []
+    THREATS_DATA = []
+    save_data('sample_scans.json', SCANS_DATA)
+    save_data('threats.json', THREATS_DATA)
+    return jsonify({"status": "History cleared successfully"})
 
 @app.route('/api/scan/results/<int:scan_id>')
 def api_scan_results(scan_id):
@@ -440,6 +563,7 @@ def api_metrics():
         "system_health": random.randint(85, 100)
     })
 
+
 @app.route('/api/alerts', methods=['GET'])
 def api_alerts():
     """Get alerts with filtering"""
@@ -472,6 +596,113 @@ def api_alerts():
 def api_policies():
     """Get all policies"""
     return jsonify(POLICIES_DATA)
+
+@app.route('/api/policies/toggle/<string:policy_id>', methods=['POST'])
+def toggle_policy(policy_id):
+    global POLICIES_DATA
+    
+    for policy in POLICIES_DATA:
+        if policy['id'] == policy_id:
+            # 1. Update the status in memory
+            policy['status'] = 'active' if policy['status'] == 'inactive' else 'inactive'
+            
+            # 2. Save the updated list to the JSON file
+            try:
+                data_dir = os.path.join(os.path.dirname(__file__), 'data')
+                with open(os.path.join(data_dir, 'policies.json'), 'w') as f:
+                    json.dump(POLICIES_DATA, f, indent=4)
+            except Exception as e:
+                print(f"Error saving to policies.json: {e}")
+                
+            return jsonify({"status": "success", "new_status": policy['status']})
+    return jsonify({"status": "error"}), 404
+
+@app.route('/api/policies/create', methods=['POST'])
+def create_policy():
+    global POLICIES_DATA
+    data = request.json
+    policy_id = data.get('id')
+
+    if policy_id:
+        # --- UPDATE EXISTING ---
+        for policy in POLICIES_DATA:
+            if policy['id'] == policy_id:
+                policy['name'] = data.get('name')
+                policy['type'] = data.get('type').lower()
+                policy['pattern'] = data.get('pattern')
+                policy['description'] = data.get('description')
+                policy['status'] = 'active' if data.get('enabled') else 'inactive'
+                break
+    else:
+        # --- CREATE NEW ---
+        new_policy = {
+            "id": f"POL-{random.randint(1000, 9999)}",
+            "name": data.get('name'),
+            "type": data.get('type').lower(),
+            "pattern": data.get('pattern'),
+            "description": data.get('description'),
+            "status": 'active' if data.get('enabled') else 'inactive'
+        }
+        POLICIES_DATA.append(new_policy)
+
+    save_data('policies.json', POLICIES_DATA)
+    return jsonify({"status": "success"})
+
+@app.route('/api/policies/delete/<string:policy_id>', methods=['DELETE'])
+def delete_policy(policy_id):
+    global POLICIES_DATA
+    
+    # Keep everything EXCEPT the policy we want to delete
+    initial_length = len(POLICIES_DATA)
+    POLICIES_DATA = [p for p in POLICIES_DATA if p['id'] != policy_id]
+    
+    if len(POLICIES_DATA) < initial_length:
+        save_data('policies.json', POLICIES_DATA)
+        return jsonify({"status": "success"})
+    
+    return jsonify({"status": "error", "message": "Policy not found"}), 404
+
+@app.route('/api/threats/<threat_id>/resolve', methods=['POST'])
+def resolve_threat(threat_id):
+    global THREATS_DATA
+    for threat in THREATS_DATA:
+        if str(threat['id']) == str(threat_id):
+            threat['status'] = 'resolved'
+            save_data('threats.json', THREATS_DATA)
+            return jsonify({"status": "success", "message": "Threat resolved"})
+    return jsonify({"status": "error", "message": "Threat not found"}), 404
+
+@app.route('/api/threats/<threat_id>/delete', methods=['DELETE'])
+def delete_threat(threat_id):
+    global THREATS_DATA
+    THREATS_DATA = [t for t in THREATS_DATA if str(t['id']) != str(threat_id)]
+    save_data('threats.json', THREATS_DATA)
+    return jsonify({"status": "success", "message": "Threat removed"})
+
+@app.route('/api/threats/<threat_id>/take-action', methods=['POST'])
+def take_action(threat_id):
+    global THREATS_DATA
+    for threat in THREATS_DATA:
+        if str(threat['id']) == str(threat_id):
+            file_path = threat.get('file_path')
+            
+            try:
+                # 1. Physically delete the file from the disk
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    message = f"File {threat['file_name']} deleted successfully."
+                else:
+                    message = "Record updated, but file was already moved or deleted."
+
+                # 2. Update the status in our database
+                threat['status'] = 'resolved'
+                save_data('threats.json', THREATS_DATA)
+                
+                return jsonify({"status": "success", "message": message})
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 500
+                
+    return jsonify({"status": "error", "message": "Threat not found"}), 404
 
 @app.route('/api/users')
 def api_users():
@@ -529,4 +760,13 @@ if __name__ == '__main__':
     print(f"   Total Policies: {len(POLICIES_DATA)}")
     print("=" * 60)
     
-    app.run(debug=True, port=5001)
+# ============ MAIN ENTRY POINT ============
+
+if __name__ == '__main__':
+    # Switch this to False when you're done coding!
+    is_dev_mode = True 
+    
+    socketio.run(app, 
+                 debug=is_dev_mode, 
+                 port=5001, 
+                 allow_unsafe_werkzeug=True)

@@ -158,7 +158,7 @@
                         </thead>
                         <tbody>
                             {% for threat in recent_threats %}
-                            <tr>
+                            <tr class="threat-row">
                                 <td><strong>{{ threat.id }}</strong></td>
                                 <td>
                                     {% if threat.type == 'malware' %}
@@ -298,17 +298,15 @@
 
 {% block extra_js %}
 <script>
-    // Quick report generation
+    // --- EXISTING: Quick report generation ---
     document.getElementById('generateQuickReport').addEventListener('click', function() {
         const reportType = document.getElementById('quickReportType').value;
         const format = document.getElementById('quickReportFormat').value;
         
-        // Show loading
         const originalText = this.innerHTML;
         this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
         this.disabled = true;
         
-        // Call API to generate report
         fetch('/api/report/generate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -318,13 +316,10 @@
             })
         })
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
+            if (!response.ok) throw new Error('Network response was not ok');
             return response.blob();
         })
         .then(blob => {
-            // Create download link
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -334,10 +329,8 @@
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
             
-            // Reset button
             this.innerHTML = originalText;
             this.disabled = false;
-            
             alert(`Report downloaded successfully!`);
         })
         .catch(error => {
@@ -348,9 +341,71 @@
         });
     });
     
-    // Quick report button in actions section
     document.getElementById('quickReport').addEventListener('click', function() {
         document.getElementById('generateQuickReport').click();
     });
+
+   // --- SOCKET.IO REAL-TIME LOGIC ---
+const socket = io();
+
+// 1. Listen for global stat updates (The "Boxes" at the top)
+socket.on('update_stats', function(data) {
+    console.log("Stats update received:", data);
+    
+    // Find the stat cards by their order (or you can add IDs to the divs)
+    const statNumbers = document.querySelectorAll('.stat-card .number');
+    if (statNumbers.length >= 2) {
+        statNumbers[0].innerText = data.total_scans;
+        statNumbers[1].innerText = data.total_threats;
+    }
+});
+
+// 2. Listen for New Scans (Updates the Scan Table)
+socket.on('new_scan', function(scan) {
+    const scanTable = document.querySelector('table tbody');
+    const newRow = `
+        <tr>
+            <td>${scan.name}</td>
+            <td><span class="badge bg-secondary">${scan.type}</span></td>
+            <td>${scan.files_scanned}</td>
+            <td><span class="badge ${scan.threats_found > 0 ? 'bg-danger' : 'bg-success'}">${scan.threats_found}</span></td>
+            <td><span class="badge bg-success">Completed</span></td>
+            <td>${scan.start_time}</td>
+        </tr>
+    `;
+    // Insert at the top of the table
+    scanTable.insertAdjacentHTML('afterbegin', newRow);
+    
+    // Remove the last row to keep it at 5 entries
+    if (scanTable.children.length > 5) {
+        scanTable.lastElementChild.remove();
+    }
+});
+
+// 3. Listen for Critical Alerts (Push Notification + Table Update)
+socket.on('critical_alert', function(threat) {
+    // Show a browser alert (or use a Toast library)
+    alert(`🚨 CRITICAL THREAT: ${threat.type} detected in ${threat.file_path}`);
+
+    const threatTable = document.querySelectorAll('table tbody')[1]; // The second table on the page
+    const newThreatRow = `
+        <tr class="threat-row">
+            <td><strong>${threat.id}</strong></td>
+            <td><span class="badge bg-danger">${threat.type}</span></td>
+            <td>
+                <div>${threat.file_path.split(/[\\/]/).pop()}</div>
+                <small class="text-muted">${threat.file_path.substring(0, 30)}...</small>
+            </td>
+            <td><span class="badge bg-danger">Critical</span></td>
+            <td><span class="badge bg-secondary">${threat.status}</span></td>
+            <td>${threat.date_detected}</td>
+        </tr>
+    `;
+    threatTable.insertAdjacentHTML('afterbegin', newThreatRow);
+    
+    if (threatTable.children.length > 5) {
+        threatTable.lastElementChild.remove();
+    }
+});
 </script>
 {% endblock %}

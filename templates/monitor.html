@@ -15,7 +15,7 @@
             <div class="card-body">
                 <div class="row text-center mb-4">
                     <div class="col-md-3">
-                        <div class="display-6 text-danger">12</div>
+                        <div class="display-6 text-danger" id="critical-counter">12</div>
                         <small>Critical Alerts</small>
                     </div>
                     <div class="col-md-3">
@@ -31,22 +31,23 @@
                         <small>System Health</small>
                     </div>
                 </div>
-                
+
                 <!-- Activity Stream -->
                 <h6><i class="bi bi-activity"></i> Recent Activity Stream</h6>
-                <div class="activity-stream" style="max-height: 300px; overflow-y: auto;">
+                <div class="activity-stream" id="real-time-stream" style="max-height: 400px; overflow-y: auto;">
                     {% for alert in alerts %}
-                    <div class="alert alert-{{ alert.type }} alert-dismissible fade show mb-2" role="alert">
-                        <i class="bi bi-{{ alert.icon }} me-2"></i>
-                        <strong>{{ alert.title }}</strong> - {{ alert.message }}
-                        <small class="text-muted float-end">{{ alert.time }}</small>
+                    <div class="alert alert-danger alert-dismissible fade show mb-2" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>{{ alert.type }} Detected</strong> - {{ alert.file_name }}
+                        <br><small class="text-muted">Location: {{ alert.file_path }}</small>
+                        <small class="text-muted float-end">{{ alert.date_detected }}</small>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                     {% endfor %}
                 </div>
             </div>
         </div>
-        
+
         <!-- System Metrics -->
         <div class="card">
             <div class="card-header">
@@ -79,7 +80,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-lg-4">
         <!-- Alert Summary -->
         <div class="card">
@@ -111,7 +112,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Monitoring Controls -->
         <div class="card">
             <div class="card-header">
@@ -127,28 +128,28 @@
                         <small>High</small>
                     </div>
                 </div>
-                
+
                 <div class="form-check form-switch mb-3">
                     <input class="form-check-input" type="checkbox" id="realTimeMonitoring" checked>
                     <label class="form-check-label" for="realTimeMonitoring">
                         Real-time Monitoring
                     </label>
                 </div>
-                
+
                 <div class="form-check form-switch mb-3">
                     <input class="form-check-input" type="checkbox" id="autoResponse" checked>
                     <label class="form-check-label" for="autoResponse">
                         Auto-response
                     </label>
                 </div>
-                
+
                 <div class="form-check form-switch mb-3">
                     <input class="form-check-input" type="checkbox" id="emailNotifications">
                     <label class="form-check-label" for="emailNotifications">
                         Email Notifications
                     </label>
                 </div>
-                
+
                 <div class="d-grid gap-2">
                     <button class="btn btn-primary" id="saveSettings">
                         <i class="bi bi-save"></i> Save Settings
@@ -163,24 +164,50 @@
 </div>
 
 {% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 <script>
-    document.getElementById('saveSettings').addEventListener('click', function() {
+    const socket = io();
+
+    // 1. Handle Save Settings Button
+    document.getElementById('saveSettings').addEventListener('click', function () {
         alert('Monitoring settings saved successfully!');
     });
-    
-    // Simulate live updates
-    setInterval(function() {
-        // Update metrics randomly for demo
-        const criticalAlerts = document.querySelector('.display-6.text-danger');
-        const warnings = document.querySelector('.display-6.text-warning');
-        
-        // Small random fluctuations for demo
-        const currentCritical = parseInt(criticalAlerts.textContent);
-        const currentWarnings = parseInt(warnings.textContent);
-        
-        criticalAlerts.textContent = currentCritical + (Math.random() > 0.7 ? 1 : 0);
-        warnings.textContent = currentWarnings + (Math.random() > 0.8 ? 1 : 0);
-    }, 5000);
+
+    // 2. Listen for REAL events from monitor.py
+    socket.on('new_scan', function (data) {
+        // We only care about Live events here
+        if (data.type === 'Live') {
+            const stream = document.getElementById('real-time-stream');
+            const criticalCounter = document.getElementById('critical-counter');
+
+            // Determine if it's a threat or just an event
+            const isThreat = data.threats_found > 0;
+            const alertType = isThreat ? 'danger' : 'success';
+            const icon = isThreat ? 'exclamation-triangle' : 'check-circle';
+            const title = isThreat ? 'Policy Violation' : 'File Verified';
+            const message = isThreat ? `Sensitive data detected in ${data.name}` : `Access permitted for ${data.name}`;
+
+            // Increment the Critical Counter if a threat is found
+            if (isThreat) {
+                let currentCount = parseInt(criticalCounter.textContent);
+                criticalCounter.textContent = currentCount + 1;
+            }
+
+            // Create the New Alert HTML
+            const newAlert = `
+                <div class="alert alert-${alertType} alert-dismissible fade show mb-2 animate__animated animate__fadeInDown" role="alert">
+                    <i class="bi bi-${icon} me-2"></i>
+                    <strong>${title}</strong> - ${message}
+                    <br><small class="text-muted">${data.path}</small>
+                    <small class="text-muted float-end">${data.start_time}</small>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+
+            // Add to the top of the activity stream
+            stream.insertAdjacentHTML('afterbegin', newAlert);
+        }
+    });
 </script>
 {% endblock %}
 {% endblock %}

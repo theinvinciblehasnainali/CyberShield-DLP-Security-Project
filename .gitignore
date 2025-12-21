@@ -1,86 +1,16 @@
-# Python
+# Python temporary files
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-.Python
-*.so
 
 # Virtual Environment
-.venv/
 venv/
-env/
-ENV/
-env.bak/
-venv.bak/
+.venv/
 
-# Environment
-.env
-.env.local
-.env.*.local
-!.env.example
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
+# System-specific files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-desktop.ini
 
-# Backups
-*.backup
-*.bak
-*.old
-*.orig
-*.temp
-
-# Test files
-test_*.csv
-test_*.log
-*.test
-*.spec
-
-# Logs
-*.log
-logs/
-logs*.txt
-
-# Runtime data
-*.pid
-*.seed
-*.pid.lock
-
-# Coverage
-.coverage
-htmlcov/
-.coverage.*
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Output
-dist/
-build/
-*.egg-info/
-*.egg
-
-# Temporary
-temp/
-tmp/
-uploads/
-downloads/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
+# User data (Avoid uploading your test threats/logs)
+threats.json
+scans.json
+test_files/

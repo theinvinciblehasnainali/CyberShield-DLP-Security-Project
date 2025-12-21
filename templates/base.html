@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DLP Security System - {% block title %}Dashboard{% endblock %}</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
@@ -13,12 +15,12 @@
             --accent-color: #e74c3c;
             --light-color: #ecf0f1;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8f9fa;
         }
-        
+
         .sidebar {
             min-height: 100vh;
             background: var(--primary-color);
@@ -27,12 +29,12 @@
             width: 250px;
             padding-top: 20px;
         }
-        
+
         .main-content {
             margin-left: 250px;
             padding: 20px;
         }
-        
+
         .nav-link {
             color: #bdc3c7;
             padding: 12px 20px;
@@ -40,66 +42,68 @@
             border-radius: 8px;
             transition: all 0.3s;
         }
-        
-        .nav-link:hover, .nav-link.active {
+
+        .nav-link:hover,
+        .nav-link.active {
             color: white;
             background-color: rgba(255, 255, 255, 0.1);
         }
-        
+
         .nav-link i {
             width: 20px;
             margin-right: 10px;
         }
-        
+
         .card {
             border: none;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
-        
+
         .card-header {
             background-color: white;
             border-bottom: 2px solid var(--light-color);
             font-weight: 600;
         }
-        
+
         .btn-primary {
             background-color: var(--secondary-color);
             border: none;
             padding: 8px 20px;
         }
-        
+
         .btn-primary:hover {
             background-color: #2980b9;
         }
-        
+
         .stat-card {
             text-align: center;
             padding: 20px;
         }
-        
+
         .stat-card .number {
             font-size: 2.5em;
             font-weight: bold;
             color: var(--secondary-color);
         }
-        
+
         .alert-card {
             border-left: 4px solid var(--accent-color);
         }
-        
+
         .table th {
             border-top: none;
             color: var(--primary-color);
         }
-        
+
         @media (max-width: 768px) {
             .sidebar {
                 width: 100%;
                 position: static;
                 min-height: auto;
             }
+
             .main-content {
                 margin-left: 0;
             }
@@ -107,6 +111,7 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <div class="container-fluid">
         <div class="row">
@@ -116,47 +121,51 @@
                     <h4><i class="bi bi-shield-lock"></i> DLP Security</h4>
                     <p class="text-muted small">Data Loss Prevention System</p>
                 </div>
-                
+
                 <nav class="nav flex-column">
                     <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
-                    
+
                     <a class="nav-link {% if 'scanner' in request.path %}active{% endif %}" href="/scanner">
                         <i class="bi bi-search"></i> Content Scanner
                     </a>
-                    
+
                     <a class="nav-link {% if 'monitor' in request.path %}active{% endif %}" href="/monitor">
                         <i class="bi bi-eye"></i> Security Monitor
                     </a>
-                    
+
                     <a class="nav-link {% if 'alerts' in request.path %}active{% endif %}" href="/alerts">
                         <i class="bi bi-bell"></i> Alerts Center
                     </a>
-                    
+
                     <a class="nav-link {% if 'policies' in request.path %}active{% endif %}" href="/policies">
                         <i class="bi bi-file-earmark-text"></i> Policies
                     </a>
-                    
+
                     <a class="nav-link {% if 'reports' in request.path %}active{% endif %}" href="/reports">
                         <i class="bi bi-file-text"></i> Reports
                     </a>
-                    
+
                     <a class="nav-link {% if 'api' in request.path %}active{% endif %}" href="/api-testing">
                         <i class="bi bi-code-slash"></i> API Testing
                     </a>
-                    
+
                     <hr class="bg-secondary mx-3 my-4">
-                    
+
+                    <a class="nav-link text-danger fw-bold" href="/logout">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+
                     <a class="nav-link {% if 'docs' in request.path %}active{% endif %}" href="/docs">
                         <i class="bi bi-question-circle"></i> Documentation
                     </a>
-                    
+
                     <a class="nav-link" href="#">
                         <i class="bi bi-gear"></i> Settings
                     </a>
                 </nav>
-                
+
                 <div class="position-absolute bottom-0 start-0 w-100 p-3 bg-dark">
                     <div class="text-center">
                         <small class="text-muted">System Status:</small>
@@ -164,7 +173,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10 main-content">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -178,25 +187,25 @@
                         </button>
                     </div>
                 </div>
-                
+
                 {% block content %}{% endblock %}
             </div>
         </div>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Update current time
         function updateTime() {
             const now = new Date();
-            document.getElementById('current-time').textContent = 
-                now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('current-time').textContent =
+                now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
         setInterval(updateTime, 1000);
         updateTime();
-        
+
         // Active nav link highlighting
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const currentPath = window.location.pathname;
             document.querySelectorAll('.nav-link').forEach(link => {
                 if (link.getAttribute('href') === currentPath) {
@@ -207,4 +216,5 @@
     </script>
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>
