@@ -1,5 +1,50 @@
 [
     {
+        "id": "TR-6568",
+        "type": "Phone Number",
+        "file_name": "userfinance.txt",
+        "file_path": "D:\\DLP Project\\CyberShield-DLP-Security\\home\\user\\documents\\financial\\userfinance.txt",
+        "severity": "critical",
+        "status": "open",
+        "date_detected": "2025-12-21 23:20:22"
+    },
+    {
+        "id": "TR-9102",
+        "type": "Phone Number",
+        "file_name": "=== USER FINANCIAL RECORDS ===.txt",
+        "file_path": "D:\\DLP Project\\CyberShield-DLP-Security\\home\\network\\shares\\projects\\=== USER FINANCIAL RECORDS ===.txt",
+        "severity": "critical",
+        "status": "resolved",
+        "date_detected": "2025-12-21 23:09:33"
+    },
+    {
+        "id": "TR-6390",
+        "type": "Corporate Email Privacy",
+        "file_name": "New Microsoft Excel Worksheet.xlsx",
+        "file_path": "D:\\DLP Project\\CyberShield-DLP-Security\\home\\downloads\\temp\\New Microsoft Excel Worksheet.xlsx",
+        "severity": "critical",
+        "status": "resolved",
+        "date_detected": "2025-12-21 23:04:17"
+    },
+    {
+        "id": "TR-8998",
+        "type": "Corporate Email Privacy",
+        "file_name": "userfinance.txt",
+        "file_path": "D:\\DLP Project\\CyberShield-DLP-Security\\home\\user\\documents\\financial\\userfinance.txt",
+        "severity": "critical",
+        "status": "open",
+        "date_detected": "2025-12-21 23:00:22"
+    },
+    {
+        "id": "TR-7919",
+        "type": "Corporate Email Privacy",
+        "file_name": "userfinance.txt",
+        "file_path": "D:\\DLP Project\\CyberShield-DLP-Security\\home\\user\\documents\\financial\\userfinance.txt",
+        "severity": "critical",
+        "status": "open",
+        "date_detected": "2025-12-21 22:59:50"
+    },
+    {
         "id": "TR-1830",
         "type": "Corporate Email Privacy",
         "file_name": "userfinance.txt",

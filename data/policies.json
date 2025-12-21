@@ -5,7 +5,7 @@
         "description": "Prevents the leakage of Pakistani National ID numbers.",
         "type": "sensitive_data",
         "pattern": "CNIC",
-        "status": "active",
+        "status": "inactive",
         "rules": [
             "Block transfer of 13-digit ID patterns"
         ],
@@ -18,7 +18,7 @@
         "description": "Monitors for unauthorized internal email disclosures.",
         "type": "Communication",
         "pattern": "Email",
-        "status": "active",
+        "status": "inactive",
         "rules": [
             "Log all detected email addresses in files"
         ],
@@ -31,7 +31,7 @@
         "description": "Detects 16-digit credit card number patterns.",
         "type": "Financial",
         "pattern": "CreditCard",
-        "status": "active",
+        "status": "inactive",
         "rules": [
             "Encryption required for financial strings"
         ],
@@ -44,6 +44,6 @@
         "type": "sensitive_data",
         "pattern": "Phone",
         "description": "Detect for a phone number.",
-        "status": "active"
+        "status": "inactive"
     }
 ]
