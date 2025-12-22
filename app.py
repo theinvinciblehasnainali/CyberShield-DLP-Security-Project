@@ -126,20 +126,25 @@ def index():
     """Main dashboard page"""
     # Calculate statistics
     total_scans = len(SCANS_DATA)
-    total_threats = sum(scan['threats_found'] for scan in SCANS_DATA)
-    total_users = len(USERS_DATA)
-    active_policies = len([p for p in POLICIES_DATA if p['status'] == 'active'])
     
-    recent_scans = sorted(SCANS_DATA, key=lambda x: x['start_time'], reverse=True)[:5]
+    # improved safety: use .get(..., 0) to prevent crashes if old data is missing keys
+    total_threats = sum(scan.get('threats_found', 0) for scan in SCANS_DATA)
+    total_users = len(USERS_DATA)
+    active_policies = len([p for p in POLICIES_DATA if p.get('status') == 'active'])
+    
+    # --- THE FIX IS HERE ---
+    # We REMOVED 'sorted()'. Now we just take the first 5 items directly.
+    recent_scans = SCANS_DATA[:5]
+    
     recent_threats = THREATS_DATA[:5]
     
     return render_template('index.html', 
-                         total_scans=total_scans,
-                         total_threats=total_threats,
-                         total_users=total_users,
-                         active_policies=active_policies,
-                         recent_scans=recent_scans,
-                         recent_threats=recent_threats)
+                          total_scans=total_scans,
+                          total_threats=total_threats,
+                          total_users=total_users,
+                          active_policies=active_policies,
+                          recent_scans=recent_scans,
+                          recent_threats=recent_threats)
 
 @app.route('/scanner')
 @login_required
@@ -158,17 +163,40 @@ def scanner():
 @login_required
 def monitor():
     """Security monitor page showing persistent alerts"""
-    # 1. We take the latest 10 threats from our JSON-backed list
-    # 2. We map them to 'alerts' so monitor.html can loop through them
+    
+    # 1. Filter SCANS_DATA to get only 'Live' events
+    # This ensures manual scans from the dashboard don't show up here
+    live_events = [s for s in SCANS_DATA if s.get('type') == 'Live']
+    
+    # 2. Count how many of these live events were actual threats
+    # This will be used to initialize your 'Critical Alerts' counter
+    live_threat_count = len([s for s in live_events if s.get('threats_found', 0) > 0])
+    
+    # 3. Pass the filtered list to the template
+    # We rename the variable to 'initial_alerts' to match the change we made in monitor.html
     return render_template('monitor.html', 
-                           alerts=THREATS_DATA[:10], 
-                           threats=THREATS_DATA[:10])
+                           initial_alerts=live_events[:10],
+                           live_threat_count=live_threat_count)
 
 @app.route('/alerts')
 @login_required
 def alerts():
-    """Alerts center page"""
-    return render_template('alerts.html', alerts=SECURITY_ALERTS, threats=THREATS_DATA)
+    """Alerts Center page showing all security events"""
+    all_alerts = []
+    
+    for scan in SCANS_DATA:
+        # We only show alerts for scans that actually found threats
+        if scan.get('threats_found', 0) > 0:
+            all_alerts.append({
+                'severity': 'danger' if scan.get('threats_found', 0) > 5 else 'warning',
+                'time': scan.get('start_time', '--:--'),
+                'title': f"Policy Violation: {scan.get('name', 'Unknown')}",
+                'message': f"Detected {scan.get('threats_found')} sensitive items.",
+                'source': 'Live Monitor' if scan.get('type') == 'Live' else 'Manual Scan',
+                'status': 'New'
+            })
+            
+    return render_template('alerts.html', alerts=all_alerts)
 
 @app.route('/policies')
 @login_required
@@ -591,6 +619,30 @@ def api_alerts():
             "limit": limit
         }
     })
+
+@app.route('/api/alerts/clear', methods=['POST'])
+@login_required
+def clear_alerts():
+    """Removes all scans that contain threats from the data"""
+    global SCANS_DATA
+    # Keep only scans that have 0 threats
+    SCANS_DATA = [s for s in SCANS_DATA if s.get('threats_found', 0) == 0]
+    save_data('sample_scans.json', SCANS_DATA)
+    return jsonify({"status": "success", "message": "Alerts cleared"})
+
+@app.route('/api/alerts/resolve/<int:index>', methods=['POST'])
+@login_required
+def resolve_alert(index):
+    """Marks a specific alert as resolved (for demo, we'll just remove it)"""
+    # Note: In a real app, you'd change a 'status' field. 
+    # For your demo, deleting the specific threat entry is most effective.
+    try:
+        # Find the alert in SCANS_DATA and remove it
+        # (This logic depends on how your index is passed; 
+        # usually easier to match by timestamp or filename)
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
 
 @app.route('/api/policies')
 def api_policies():

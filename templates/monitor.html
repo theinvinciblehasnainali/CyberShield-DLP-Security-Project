@@ -15,11 +15,11 @@
             <div class="card-body">
                 <div class="row text-center mb-4">
                     <div class="col-md-3">
-                        <div class="display-6 text-danger" id="critical-counter">12</div>
+                        <div class="display-6 text-danger" id="critical-counter">{{ live_threat_count }}</div>
                         <small>Critical Alerts</small>
                     </div>
                     <div class="col-md-3">
-                        <div class="display-6 text-warning">24</div>
+                        <div class="display-6 text-warning">0</div>
                         <small>Warnings</small>
                     </div>
                     <div class="col-md-3">
@@ -35,14 +35,19 @@
                 <!-- Activity Stream -->
                 <h6><i class="bi bi-activity"></i> Recent Activity Stream</h6>
                 <div class="activity-stream" id="real-time-stream" style="max-height: 400px; overflow-y: auto;">
-                    {% for alert in alerts %}
-                    <div class="alert alert-danger alert-dismissible fade show mb-2" role="alert">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        <strong>{{ alert.type }} Detected</strong> - {{ alert.file_name }}
-                        <br><small class="text-muted">Location: {{ alert.file_path }}</small>
-                        <small class="text-muted float-end">{{ alert.date_detected }}</small>
+                    {% for scan in initial_alerts %}
+                    {% if scan.type == 'Live' %}
+                    {% set is_threat = scan.threats_found > 0 %}
+                    <div class="alert alert-{{ 'danger' if is_threat else 'success' }} alert-dismissible fade show mb-2"
+                        role="alert">
+                        <i class="bi bi-{{ 'exclamation-triangle' if is_threat else 'check-circle' }} me-2"></i>
+                        <strong>{{ 'Policy Violation' if is_threat else 'File Verified' }}</strong> -
+                        {{ scan.name }}
+                        <br><small class="text-muted">{{ scan.path }}</small>
+                        <small class="text-muted float-end">{{ scan.start_time }}</small>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
             </div>
@@ -162,6 +167,7 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
@@ -209,5 +215,4 @@
         }
     });
 </script>
-{% endblock %}
 {% endblock %}

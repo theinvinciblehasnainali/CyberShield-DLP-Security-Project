@@ -38,7 +38,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Alerts Table -->
         <div class="card">
             <div class="card-header">
@@ -65,10 +65,10 @@
                             {% for alert in alerts %}
                             <tr>
                                 <td>
-                                    {% if alert.type == 'danger' %}
+                                    {% if alert.severity == 'danger' %}
                                     <span class="badge bg-danger">Critical</span>
-                                    {% elif alert.type == 'warning' %}
-                                    <span class="badge bg-warning">High</span>
+                                    {% elif alert.severity == 'warning' %}
+                                    <span class="badge bg-warning text-dark">High</span>
                                     {% else %}
                                     <span class="badge bg-info">Info</span>
                                     {% endif %}
@@ -76,15 +76,22 @@
                                 <td>{{ alert.time }}</td>
                                 <td>{{ alert.title }}</td>
                                 <td>{{ alert.message }}</td>
-                                <td>System Monitor</td>
-                                <td><span class="badge bg-secondary">New</span></td>
+                                <td>{{ alert.source }}</td>
+                                <td><span class="badge bg-secondary">{{ alert.status }}</span></td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary">
+                                    <button class="btn btn-sm btn-outline-primary" title="View Details">
                                         <i class="bi bi-eye"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-success">
+                                    <button class="btn btn-sm btn-outline-success" title="Mark Resolved">
                                         <i class="bi bi-check"></i>
                                     </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="bi bi-shield-check d-block mb-2" style="font-size: 2rem;"></i>
+                                    No security alerts found in the logs.
                                 </td>
                             </tr>
                             {% endfor %}
@@ -95,4 +102,105 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="alertModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="modalTitle">Alert Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i id="modalIcon" class="bi bi-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                </div>
+                <table class="table table-sm">
+                    <tr>
+                        <th>Time:</th>
+                        <td id="modalTime"></td>
+                    </tr>
+                    <tr>
+                        <th>Source:</th>
+                        <td id="modalSource"></td>
+                    </tr>
+                    <tr>
+                        <th>Violation:</th>
+                        <td id="modalViolation"></td>
+                    </tr>
+                </table>
+                <div class="alert alert-secondary">
+                    <strong>Description:</strong><br>
+                    <span id="modalMessage"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 1. Handle Clear All Button
+    document.getElementById('clearAllAlerts').addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear all security alerts? This cannot be undone.')) {
+            fetch('/api/alerts/clear', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload(); // Refresh the page to show empty table
+                }
+            });
+        }
+    });
+
+    // 2. Handle Resolve (Checkmark) Buttons
+    document.querySelectorAll('.btn-outline-success').forEach((button, index) => {
+        button.addEventListener('click', function() {
+            // For the demo, we will just hide the row immediately
+            const row = this.closest('tr');
+            row.style.transition = '0.5s';
+            row.style.opacity = '0';
+            setTimeout(() => row.remove(), 500);
+            
+            // Optional: Call a backend route here if you want it to stay gone on refresh
+            alert('Alert marked as resolved and moved to archive.');
+        });
+    });
+
+    // 3. Handle View (Eye) Buttons with Modal
+document.querySelectorAll('.btn-outline-primary').forEach(button => {
+    button.addEventListener('click', function() {
+        const row = this.closest('tr');
+        
+        // Extract data from the row
+        const severity = row.cells[0].innerText.trim();
+        const time = row.cells[1].innerText;
+        const title = row.cells[2].innerText;
+        const message = row.cells[3].innerText;
+        const source = row.cells[4].innerText;
+
+        // Fill the Modal fields
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalTime').innerText = time;
+        document.getElementById('modalSource').innerText = source;
+        document.getElementById('modalViolation').innerText = title;
+        document.getElementById('modalMessage').innerText = message;
+
+        // Change icon color based on severity
+        const icon = document.getElementById('modalIcon');
+        if (severity === 'Critical') {
+            icon.className = 'bi bi-exclamation-triangle-fill text-danger';
+        } else {
+            icon.className = 'bi bi-exclamation-circle text-warning';
+        }
+
+        // Show the Modal
+        var myModal = new bootstrap.Modal(document.getElementById('alertModal'));
+        myModal.show();
+    });
+});
+</script>
 {% endblock %}
