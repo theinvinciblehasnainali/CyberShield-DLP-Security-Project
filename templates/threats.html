@@ -11,9 +11,12 @@
             <div class="card-header">
                 <i class="bi bi-shield-exclamation"></i> Threat Summary
                 <div class="float-end">
-                    <span class="badge bg-danger me-2">Critical: {{ threats|selectattr('severity', 'equalto', 'critical')|list|length }}</span>
-                    <span class="badge bg-warning me-2">High: {{ threats|selectattr('severity', 'equalto', 'high')|list|length }}</span>
-                    <span class="badge bg-info">Medium: {{ threats|selectattr('severity', 'equalto', 'medium')|list|length }}</span>
+                    <span class="badge bg-danger me-2">Critical: {{ threats|selectattr('severity', 'equalto',
+                        'critical')|list|length }}</span>
+                    <span class="badge bg-warning me-2">High: {{ threats|selectattr('severity', 'equalto',
+                        'high')|list|length }}</span>
+                    <span class="badge bg-info">Medium: {{ threats|selectattr('severity', 'equalto',
+                        'medium')|list|length }}</span>
                 </div>
             </div>
             <div class="card-body">
@@ -23,27 +26,30 @@
                         <small>Total Threats</small>
                     </div>
                     <div class="col-md-3">
-                        <div class="display-6 text-warning">{{ threats|selectattr('status', 'equalto', 'investigating')|list|length }}</div>
+                        <div class="display-6 text-warning">{{ threats|selectattr('status', 'equalto',
+                            'investigating')|list|length }}</div>
                         <small>Investigating</small>
                     </div>
                     <div class="col-md-3">
-                        <div class="display-6 text-success">{{ threats|selectattr('status', 'equalto', 'resolved')|list|length }}</div>
+                        <div class="display-6 text-success">{{ threats|selectattr('status', 'equalto',
+                            'resolved')|list|length }}</div>
                         <small>Resolved</small>
                     </div>
                     <div class="col-md-3">
-                        <div class="display-6 text-info">{{ threats|selectattr('status', 'equalto', 'quarantined')|list|length }}</div>
+                        <div class="display-6 text-info">{{ threats|selectattr('status', 'equalto',
+                            'quarantined')|list|length }}</div>
                         <small>Quarantined</small>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <!-- Threat Table -->
         <div class="card">
             <div class="card-header">
                 <i class="bi bi-list-ul"></i> Detected Threats
-                <button class="btn btn-sm btn-outline-danger float-end" id="exportThreats">
-                    <i class="bi bi-download"></i> Export All
+                <button class="btn btn-sm btn-outline-danger float-end" id="deleteAllThreats">
+                    <i class="bi bi-trash"></i> Delete All Records
                 </button>
             </div>
             <div class="card-body">
@@ -108,13 +114,16 @@
                                     <small class="text-muted">{{ threat.department }}</small>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary view-threat" data-id="{{ threat.id }}">
+                                    <button class="btn btn-sm btn-outline-primary view-threat"
+                                        data-id="{{ threat.id }}">
                                         <i class="bi bi-eye"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-success resolve-threat" data-id="{{ threat.id }}">
+                                    <button class="btn btn-sm btn-outline-success resolve-threat"
+                                        data-id="{{ threat.id }}">
                                         <i class="bi bi-check"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger delete-threat" data-id="{{ threat.id }}">
+                                    <button class="btn btn-sm btn-outline-danger delete-threat"
+                                        data-id="{{ threat.id }}">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </td>
@@ -156,13 +165,13 @@
 
     // 1. VIEW THREAT DETAILS
     document.querySelectorAll('.view-threat').forEach(btn => {
-        btn.addEventListener('click', function() {
-            currentThreatId = this.dataset.id; 
+        btn.addEventListener('click', function () {
+            currentThreatId = this.dataset.id;
             const row = this.closest('tr');
             const type = row.cells[1].innerText;
             const file = row.cells[2].querySelector('div').innerText;
             const path = row.cells[2].querySelector('small').innerText;
-            
+
             const threatDetails = `
                 <div class="alert alert-warning">
                     <h6><i class="bi bi-exclamation-octagon"></i> ACTION REQUIRED: ${currentThreatId}</h6>
@@ -179,58 +188,77 @@
     });
 
     // 2. TAKE ACTION (DELETE FILE)
-    document.getElementById('takeAction').addEventListener('click', function() {
+    document.getElementById('takeAction').addEventListener('click', function () {
         if (!currentThreatId) return;
 
         if (confirm("Are you sure? This will PERMANENTLY DELETE the file from the system to prevent a data leak.")) {
             fetch(`/api/threats/${currentThreatId}/take-action`, { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if(data.status === 'success') {
-                    alert(data.message);
-                    location.reload(); 
-                } else {
-                    alert("Error: " + data.message);
-                }
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert("Error: " + data.message);
+                    }
+                });
         }
     });
 
     // 3. RESOLVE THREAT (MARK WITHOUT DELETING)
     document.querySelectorAll('.resolve-threat').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const threatId = this.dataset.id;
             if (confirm(`Mark Threat ${threatId} as resolved?`)) {
                 fetch(`/api/threats/${threatId}/resolve`, { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    if(data.status === 'success') {
-                        const row = this.closest('tr');
-                        const statusCell = row.querySelector('td:nth-child(6)');
-                        statusCell.innerHTML = '<span class="badge bg-info">Resolved</span>';
-                        alert('Status updated to Resolved');
-                    }
-                });
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const row = this.closest('tr');
+                            const statusCell = row.querySelector('td:nth-child(6)');
+                            statusCell.innerHTML = '<span class="badge bg-info">Resolved</span>';
+                            alert('Status updated to Resolved');
+                        }
+                    });
             }
         });
     });
 
     // 4. DELETE RECORD (FROM TABLE ONLY)
     document.querySelectorAll('.delete-threat').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const threatId = this.dataset.id;
             if (confirm('Permanently delete this threat record?')) {
                 fetch(`/api/threats/${threatId}/delete`, { method: 'DELETE' })
-                .then(response => response.json())
-                .then(data => {
-                    if(data.status === 'success') {
-                        const row = this.closest('tr');
-                        row.classList.add('animate__animated', 'animate__fadeOutRight');
-                        setTimeout(() => row.remove(), 500);
-                    }
-                });
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const row = this.closest('tr');
+                            row.classList.add('animate__animated', 'animate__fadeOutRight');
+                            setTimeout(() => row.remove(), 500);
+                        }
+                    });
             }
         });
     });
+    // 5. DELETE ALL THREAT RECORDS
+document.getElementById('deleteAllThreats').addEventListener('click', function() {
+    if (confirm("🚨 WARNING: This will permanently delete ALL threat records from the database. This action cannot be undone. Proceed?")) {
+        fetch('/api/threats/delete-all', { 
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.status === 'success') {
+                alert("Database cleared successfully!");
+                location.reload(); // Refresh to show empty table
+            } else {
+                alert("Error: " + data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
 </script>
 {% endblock %}

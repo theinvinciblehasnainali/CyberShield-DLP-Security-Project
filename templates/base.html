@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DLP Security System - {% block title %}Dashboard{% endblock %}</title>
+
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -18,21 +20,48 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
+            background-color: var(--bs-body-bg);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .sidebar {
-            min-height: 100vh;
+            height: 100vh;
             background: var(--primary-color);
             color: white;
             position: fixed;
             width: 250px;
             padding-top: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            z-index: 1030;
+        }
+
+        /* FIX: Prevents the muted text in sidebar from changing color in Dark Mode */
+        .sidebar .text-muted {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        /* Sidebar Scrollbar Styling */
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .sidebar:hover::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .main-content {
             margin-left: 250px;
             padding: 20px;
+            min-height: 100vh;
         }
 
         .nav-link {
@@ -61,40 +90,13 @@
             margin-bottom: 20px;
         }
 
-        .card-header {
-            background-color: white;
-            border-bottom: 2px solid var(--light-color);
-            font-weight: 600;
+        #themeToggler {
+            cursor: pointer;
+            transition: transform 0.2s ease;
         }
 
-        .btn-primary {
-            background-color: var(--secondary-color);
-            border: none;
-            padding: 8px 20px;
-        }
-
-        .btn-primary:hover {
-            background-color: #2980b9;
-        }
-
-        .stat-card {
-            text-align: center;
-            padding: 20px;
-        }
-
-        .stat-card .number {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: var(--secondary-color);
-        }
-
-        .alert-card {
-            border-left: 4px solid var(--accent-color);
-        }
-
-        .table th {
-            border-top: none;
-            color: var(--primary-color);
+        #themeToggler:hover {
+            transform: scale(1.1);
         }
 
         @media (max-width: 768px) {
@@ -115,8 +117,7 @@
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar Navigation -->
-            <div class="col-md-3 col-lg-2 sidebar">
+            <div class="col-md-3 col-lg-2 sidebar shadow">
                 <div class="text-center mb-4">
                     <h4><i class="bi bi-shield-lock"></i> DLP Security</h4>
                     <p class="text-muted small">Data Loss Prevention System</p>
@@ -126,65 +127,48 @@
                     <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
-
                     <a class="nav-link {% if 'scanner' in request.path %}active{% endif %}" href="/scanner">
                         <i class="bi bi-search"></i> Content Scanner
                     </a>
-
                     <a class="nav-link {% if 'monitor' in request.path %}active{% endif %}" href="/monitor">
                         <i class="bi bi-eye"></i> Security Monitor
                     </a>
-
                     <a class="nav-link {% if 'alerts' in request.path %}active{% endif %}" href="/alerts">
                         <i class="bi bi-bell"></i> Alerts Center
                     </a>
-
                     <a class="nav-link {% if 'policies' in request.path %}active{% endif %}" href="/policies">
                         <i class="bi bi-file-earmark-text"></i> Policies
                     </a>
-
                     <a class="nav-link {% if 'reports' in request.path %}active{% endif %}" href="/reports">
                         <i class="bi bi-file-text"></i> Reports
                     </a>
-
-                    <a class="nav-link {% if 'api' in request.path %}active{% endif %}" href="/threats">
+                    <a class="nav-link {% if 'threats' in request.path %}active{% endif %}" href="/threats">
                         <i class="bi bi-shield-exclamation"></i> Threats
                     </a>
-
                     <hr class="bg-secondary mx-3 my-4">
-
+                    <a class="nav-link {% if 'profile' in request.path %}active{% endif %}" href="/profile">
+                        <i class="bi bi-person-circle"></i> My Profile
+                    </a>
                     <a class="nav-link text-danger fw-bold" href="/logout">
                         <i class="bi bi-box-arrow-right"></i> Logout
                     </a>
-
-                    <a class="nav-link {% if 'docs' in request.path %}active{% endif %}" href="/docs">
-                        <i class="bi bi-question-circle"></i> Documentation
-                    </a>
-
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-gear"></i> Settings
-                    </a>
                 </nav>
-
-                <div class="position-absolute bottom-0 start-0 w-100 p-3 bg-dark">
-                    <div class="text-center">
-                        <small class="text-muted">System Status:</small>
-                        <span class="badge bg-success">Online</span>
-                    </div>
-                </div>
             </div>
 
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content">
+            <div class="col-md-9 col-lg-10 main-content bg-body-tertiary">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>{% block page_title %}Dashboard{% endblock %}</h2>
-                    <div class="d-flex">
-                        <span class="badge bg-light text-dark me-3">
-                            <i class="bi bi-clock"></i> <span id="current-time">Loading...</span>
+                    <h2 class="fw-bold">{% block page_title %}Dashboard{% endblock %}</h2>
+                    <div class="d-flex align-items-center">
+
+                        <div id="themeToggler"
+                            class="me-3 p-2 rounded-circle border bg-body shadow-sm d-flex align-items-center justify-content-center"
+                            style="width: 40px; height: 40px;">
+                            <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+                        </div>
+
+                        <span class="badge bg-body border text-body py-2 px-3 shadow-sm rounded-pill">
+                            <i class="bi bi-clock me-1 text-primary"></i> <span id="current-time">Loading...</span>
                         </span>
-                        <button class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-download"></i> Export
-                        </button>
                     </div>
                 </div>
 
@@ -193,25 +177,68 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
-        // Update current time
+        // --- Advanced Theme & System Sync Management ---
+        const themeToggler = document.getElementById('themeToggler');
+        const themeIcon = document.getElementById('themeIcon');
+        const htmlElement = document.documentElement;
+
+        // Function to apply the theme to the HTML tag and update the icon
+        const applyTheme = (theme) => {
+            htmlElement.setAttribute('data-bs-theme', theme);
+            if (theme === 'dark') {
+                themeIcon.classList.replace('bi-moon-stars-fill', 'bi-sun-fill');
+            } else {
+                icon = document.getElementById('themeIcon'); // Re-check icon
+                themeIcon.classList.replace('bi-sun-fill', 'bi-moon-stars-fill');
+            }
+        };
+
+        // 1. Initial Theme Selection
+        const initTheme = () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                applyTheme(savedTheme);
+            } else {
+                // If no manual choice, use system preference
+                const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                applyTheme(systemTheme);
+            }
+        };
+
+        // 2. Manual Toggle Logic
+        themeToggler.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme); // Save choice
+            applyTheme(newTheme);
+        });
+
+        // 3. Real-time System Listener
+        // This watches for you changing your Windows/Mac settings
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            // We only auto-sync if the user HASN'T manually picked a theme yet
+            if (!localStorage.getItem('theme')) {
+                applyTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+
+        // 4. Clock Logic
         function updateTime() {
             const now = new Date();
-            document.getElementById('current-time').textContent =
-                now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const timeElement = document.getElementById('current-time');
+            if (timeElement) {
+                timeElement.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
         }
-        setInterval(updateTime, 1000);
-        updateTime();
 
-        // Active nav link highlighting
-        document.addEventListener('DOMContentLoaded', function () {
-            const currentPath = window.location.pathname;
-            document.querySelectorAll('.nav-link').forEach(link => {
-                if (link.getAttribute('href') === currentPath) {
-                    link.classList.add('active');
-                }
-            });
+        // Run everything once the DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            updateTime();
+            setInterval(updateTime, 1000);
         });
     </script>
     {% block extra_js %}{% endblock %}

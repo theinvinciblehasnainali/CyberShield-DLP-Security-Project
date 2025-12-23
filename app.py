@@ -1,5 +1,5 @@
 from engine import perform_real_scan
-from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_file, send_from_directory, session, redirect, url_for, flash
 import json
 from datetime import datetime, timedelta
 import random
@@ -10,6 +10,33 @@ from fpdf import FPDF
 from flask import make_response
 from flask_socketio import SocketIO, emit
 from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def load_users():
+    """Reads the auth.json file. Creates a default admin if file is missing."""
+    if not os.path.exists(AUTH_FILE):
+        # Create a default admin user with a HASHED password
+        default_admin = [{
+            "username": "hasnain",
+            "password": generate_password_hash("admin123")
+        }]
+        save_users(default_admin)
+        return default_admin
+    
+    try:
+        with open(AUTH_FILE, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return []
+
+def save_users(users):
+    """Writes the user list to auth.json."""
+    with open(AUTH_FILE, 'w') as f:
+        json.dump(users, f, indent=4)
 
 def login_required(f):
     @wraps(f)
@@ -20,9 +47,9 @@ def login_required(f):
     return decorated_function
 
 app = Flask(__name__)
-app.secret_key = "dlp_security_secret_key_hasnain"
-ADMIN_USER = "hasnain"
-ADMIN_PASS = "admin123"
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'fallback_key_if_env_fails')
+
+AUTH_FILE = 'auth.json'
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -107,8 +134,16 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        if username == ADMIN_USER and password == ADMIN_PASS:
+        # 1. Load all users
+        users = load_users()
+        
+        # 2. Find the user in the list (Case-insensitive username)
+        user = next((u for u in users if u['username'].lower() == username.lower()), None)
+        
+        # 3. Check if user exists AND if the password hash matches
+        if user and check_password_hash(user['password'], password):
             session["logged_in"] = True
+            session["username"] = user['username']
             return redirect(url_for('index'))
         else:
             error = "Invalid username or password. Please try again."
@@ -120,22 +155,53 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username').strip()
+        password = request.form.get('password')
+        
+        # Validation
+        if not username or not password:
+            return render_template('register.html', error="All fields are required.")
+
+        users = load_users()
+        
+        # Check if username already taken
+        if any(u['username'].lower() == username.lower() for u in users):
+            return render_template('register.html', error="Username already exists!")
+
+        # Create new user with HASHED password
+        new_user = {
+            "username": username,
+            "password": generate_password_hash(password)
+        }
+        
+        users.append(new_user)
+        save_users(users)
+        
+        # Redirect to login so they can sign in with new account
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
 @app.route('/')
 @login_required
 def index():
     """Main dashboard page"""
     # Calculate statistics
     total_scans = len(SCANS_DATA)
-    
-    # improved safety: use .get(..., 0) to prevent crashes if old data is missing keys
     total_threats = sum(scan.get('threats_found', 0) for scan in SCANS_DATA)
-    total_users = len(USERS_DATA)
+    
+    # --- THE FIX ---
+    # Call your existing load_users() function which reads from auth.json
+    registered_users = load_users() 
+    total_users = len(registered_users)
+    # ----------------
+    
     active_policies = len([p for p in POLICIES_DATA if p.get('status') == 'active'])
     
-    # --- THE FIX IS HERE ---
-    # We REMOVED 'sorted()'. Now we just take the first 5 items directly.
     recent_scans = SCANS_DATA[:5]
-    
     recent_threats = THREATS_DATA[:5]
     
     return render_template('index.html', 
@@ -227,6 +293,58 @@ def threats():
 def users():
     """User management page"""
     return render_template('users.html', users=USERS_DATA)
+
+@app.route('/profile')
+@login_required
+def profile():
+    """Displays the currently logged-in user's profile information"""
+    # 1. Get the username from the current session
+    current_username = session.get("username")
+    
+    # 2. In a real app, you'd pull more data from your JSON. 
+    # For now, we'll create a profile object for the logged-in user.
+    user_info = {
+        "username": current_username,
+        "role": "Security Administrator",
+        "last_login": "December 2025",
+        "department": "Cybersecurity Division",
+        "access_level": "Tier 3 (Full Access)"
+    }
+    
+    return render_template('profile.html', user=user_info)
+
+@app.route('/update_profile', methods=['POST'])
+@login_required
+def update_profile():
+    new_username = request.form.get('username').strip()
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    
+    current_session_user = session.get('username')
+    users = load_users()
+    
+    user_to_update = next((u for u in users if u['username'] == current_session_user), None)
+
+    if not user_to_update:
+        return redirect(url_for('profile'))
+
+    # If the user is trying to change their password
+    if new_password:
+        if not current_password or not check_password_hash(user_to_update['password'], current_password):
+            flash("Incorrect current password! Password change denied.", "danger")
+            return redirect(url_for('profile'))
+        
+        user_to_update['password'] = generate_password_hash(new_password)
+        flash("Password updated successfully!", "success")
+
+    # Update Username
+    if new_username and new_username != current_session_user:
+        user_to_update['username'] = new_username
+        session['username'] = new_username
+        flash("Username updated successfully!", "success")
+
+    save_users(users)
+    return redirect(url_for('profile'))
 
 # ============ DOCUMENTATION PAGES ============
 
@@ -498,6 +616,21 @@ def api_scan():
 
     return jsonify({"status": "success", "threats_found": results["threats_found"]})
 
+@app.route('/api/scan/delete-all', methods=['DELETE'])
+@login_required
+def delete_all_scans():
+    try:
+        global SCANS_DATA
+        SCANS_DATA = []
+        
+        # Save the empty list back to your scans.json file
+        with open('data/sample_scans.json', 'w') as f:
+            json.dump([], f, indent=4)
+            
+        return jsonify({"status": "success", "message": "All scan history deleted."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route('/api/dashboard-data')
 def dashboard_data():
     """Returns the latest scan and threat data as JSON"""
@@ -634,8 +767,6 @@ def clear_alerts():
 @login_required
 def resolve_alert(index):
     """Marks a specific alert as resolved (for demo, we'll just remove it)"""
-    # Note: In a real app, you'd change a 'status' field. 
-    # For your demo, deleting the specific threat entry is most effective.
     try:
         # Find the alert in SCANS_DATA and remove it
         # (This logic depends on how your index is passed; 
@@ -730,6 +861,23 @@ def delete_threat(threat_id):
     THREATS_DATA = [t for t in THREATS_DATA if str(t['id']) != str(threat_id)]
     save_data('threats.json', THREATS_DATA)
     return jsonify({"status": "success", "message": "Threat removed"})
+
+@app.route('/api/threats/delete-all', methods=['DELETE'])
+@login_required
+def delete_all_threats():
+    try:
+        # Clear the global list
+        global THREATS_DATA
+        THREATS_DATA = []
+        
+        # Overwrite the JSON file with an empty list
+        # Ensure 'threats.json' matches your actual filename
+        with open('data/threats.json', 'w') as f:
+            json.dump([], f, indent=4)
+            
+        return jsonify({"status": "success", "message": "All threat records deleted."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/threats/<threat_id>/take-action', methods=['POST'])
 def take_action(threat_id):

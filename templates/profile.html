@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile - DLP Security{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+
+
+{% block content %}
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi {% if category == 'danger' %}bi-exclamation-octagon{% else %}bi-check-circle{% endif %} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <div class="row justify-content-center">
+        </div>
+</div>
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body text-center p-5">
+                <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-4"
+                    style="width: 100px; height: 100px;">
+                    <i class="bi bi-person-fill" style="font-size: 3.5rem;"></i>
+                </div>
+
+                <h2 class="fw-bold mb-1">{{ user.username | capitalize }}</h2>
+                <p class="text-muted mb-4">{{ user.role }}</p>
+
+                <hr>
+
+                <div class="text-start mt-4">
+                    <div class="mb-3">
+                        <label class="small text-muted d-block">Department</label>
+                        <span class="fw-bold">{{ user.department }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted d-block">Access Level</label>
+                        <span class="badge bg-info text-dark">{{ user.access_level }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted d-block">Member Since</label>
+                        <span>{{ user.last_login }}</span>
+                    </div>
+                </div>
+
+                <div class="mt-5">
+                    <button class="btn btn-outline-primary btn-sm me-2" data-bs-toggle="modal"
+                        data-bs-target="#editProfileModal">
+                        <i class="bi bi-pencil"></i> Edit Profile
+                    </button>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ url_for('update_profile') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Username</label>
+                        <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+                    </div>
+
+                    <hr>
+                    <p class="text-muted small">Leave password fields blank if you don't want to change it.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Current Password</label>
+                        <input type="password" name="current_password" class="form-control"
+                            placeholder="Required to verify changes">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">New Password</label>
+                        <input type="password" name="new_password" class="form-control"
+                            placeholder="Enter new password">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

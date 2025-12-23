@@ -28,12 +28,12 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Scan Path (Optional)</label>
                         <input type="text" class="form-control" placeholder="/path/to/scan" id="customPath">
                     </div>
-                    
+
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <button type="button" class="btn btn-outline-secondary" id="testScan">
                             <i class="bi bi-play-circle"></i> Test Scan
@@ -45,10 +45,13 @@
                 </form>
             </div>
         </div>
-        
+
         <div class="card mt-4">
             <div class="card-header">
                 <i class="bi bi-list-check"></i> Recent Scan Results
+                <button class="btn btn-sm btn-outline-danger float-end" id="deleteAllScans">
+                    <i class="bi bi-trash"></i> Delete All Scans
+                </button>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -84,7 +87,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-lg-4">
         <div class="card">
             <div class="card-header">
@@ -104,9 +107,9 @@
 {% block extra_js %}
 <script>
     // This script handles the "Start Scan" button click
-    document.getElementById('scanForm').addEventListener('submit', function(e) {
+    document.getElementById('scanForm').addEventListener('submit', function (e) {
         e.preventDefault();
-        
+
         const scanType = document.getElementById('scanType').value;
         const customPath = document.getElementById('customPath').value;
         const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -117,24 +120,42 @@
         // Sending data to your Flask /api/scan route
         fetch('/api/scan', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                path: customPath || "./test_files", 
+                path: customPath || "./test_files",
                 type: scanType
             })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.reload(); // Refresh the page to see the new data in the table
+                }
+            })
+            .catch(err => alert('Error starting scan.'));
+    });
+
+    // Simple helper for the Test Scan button
+    document.getElementById('testScan').addEventListener('click', function () {
+        document.getElementById('customPath').value = "./test_files";
+    });
+    
+    document.getElementById('deleteAllScans').addEventListener('click', function() {
+    if (confirm("Are you sure you want to clear the entire scan history? This cannot be undone.")) {
+        fetch('/api/scan/delete-all', { 
+            method: 'DELETE' 
         })
         .then(response => response.json())
         .then(data => {
             if(data.status === 'success') {
-                window.location.reload(); // Refresh the page to see the new data in the table
+                alert(data.message);
+                location.reload(); 
+            } else {
+                alert("Error: " + data.message);
             }
         })
-        .catch(err => alert('Error starting scan.'));
-    });
-
-    // Simple helper for the Test Scan button
-    document.getElementById('testScan').addEventListener('click', function() {
-        document.getElementById('customPath').value = "./test_files";
-    });
+        .catch(error => console.error('Error:', error));
+    }
+});
 </script>
 {% endblock %}
