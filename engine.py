@@ -15,18 +15,23 @@ def find_leaks_in_text(text, active_policies):
     findings = []
     for policy in active_policies:
         if policy.get('status') == 'active':
-            pattern = policy.get('pattern')
+            raw_pattern = policy.get('pattern', '')
             policy_name = policy.get('name', 'Unknown Policy')
             
-            if not pattern: continue
-                
+            if not raw_pattern: continue
+            
+            # --- FIX: Convert to UPPERCASE before checking the dictionary ---
+            # This ensures 'cnic', 'Cnic', and 'CNIC' all find the regex
+            actual_regex = REGEX_PATTERNS.get(raw_pattern.upper(), raw_pattern)
+            
             try:
-                # Add re.IGNORECASE to catch 'Password', 'PASSWORD', etc.
-                matches = re.findall(pattern, text, re.IGNORECASE) 
+                # We still keep re.IGNORECASE for the actual search in the text
+                matches = re.findall(actual_regex, text, re.IGNORECASE) 
                 for match in matches:
+                    match_val = " ".join(match) if isinstance(match, tuple) else str(match)
                     findings.append({
                         "type": policy_name, 
-                        "value": str(match)
+                        "value": match_val
                     })
             except re.error as e:
                 print(f"⚠️ Regex Error: {e}")

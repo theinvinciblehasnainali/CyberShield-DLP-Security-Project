@@ -1,1 +1,32 @@
-[]
+[
+    {
+        "id": 3,
+        "name": "financial",
+        "type": "quick",
+        "start_time": "14:25:59",
+        "files_scanned": 1,
+        "threats_found": 1,
+        "status": "completed",
+        "path": "./home/user/documents/financial"
+    },
+    {
+        "id": 2,
+        "name": "temp",
+        "type": "quick",
+        "start_time": "14:25:31",
+        "files_scanned": 2,
+        "threats_found": 1,
+        "status": "completed",
+        "path": "./home/downloads/temp"
+    },
+    {
+        "id": 1,
+        "name": "financial",
+        "type": "quick",
+        "start_time": "14:22:07",
+        "files_scanned": 1,
+        "threats_found": 1,
+        "status": "completed",
+        "path": "./home/user/documents/financial"
+    }
+]

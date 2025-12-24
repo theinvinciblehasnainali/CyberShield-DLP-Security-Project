@@ -1,48 +1,17 @@
 [
     {
-        "id": "POL-001",
-        "name": "CNIC Protection",
-        "description": "Prevents the leakage of Pakistani National ID numbers.",
+        "id": "POL-8090",
+        "name": "CNIC",
         "type": "sensitive_data",
-        "pattern": "CNIC",
-        "status": "active",
-        "rules": [
-            "Block transfer of 13-digit ID patterns"
-        ],
-        "violations_today": 3,
-        "total_violations": 45
+        "pattern": "cnic",
+        "description": "Cnic Protection",
+        "status": "inactive"
     },
     {
-        "id": "POL-002",
-        "name": "Corporate Email Privacy",
-        "description": "Monitors for unauthorized internal email disclosures.",
-        "type": "Communication",
-        "pattern": "Email",
-        "status": "active",
-        "rules": [
-            "Log all detected email addresses in files"
-        ],
-        "violations_today": 2,
-        "total_violations": 28
-    },
-    {
-        "id": "POL-003",
-        "name": "Financial Data (Credit Cards)",
-        "description": "Detects 16-digit credit card number patterns.",
-        "type": "Financial",
-        "pattern": "CreditCard",
-        "status": "active",
-        "rules": [
-            "Encryption required for financial strings"
-        ],
-        "violations_today": 0,
-        "total_violations": 12
-    },
-    {
-        "id": "POL-3432",
-        "name": "Phone Number",
+        "id": "POL-7114",
+        "name": "Phone number detection",
         "type": "sensitive_data",
-        "pattern": "Phone",
+        "pattern": "phone",
         "description": "Detect phone number.",
         "status": "active"
     }

@@ -807,9 +807,9 @@ def create_policy():
     policy_id = data.get('id')
 
     if policy_id:
-        # --- UPDATE EXISTING ---
+        # UPDATE EXISTING
         for policy in POLICIES_DATA:
-            if policy['id'] == policy_id:
+            if str(policy['id']) == str(policy_id): # Force string comparison
                 policy['name'] = data.get('name')
                 policy['type'] = data.get('type').lower()
                 policy['pattern'] = data.get('pattern')
@@ -817,9 +817,10 @@ def create_policy():
                 policy['status'] = 'active' if data.get('enabled') else 'inactive'
                 break
     else:
-        # --- CREATE NEW ---
+        # CREATE NEW
+        new_id = f"POL-{random.randint(1000, 9999)}"
         new_policy = {
-            "id": f"POL-{random.randint(1000, 9999)}",
+            "id": new_id,
             "name": data.get('name'),
             "type": data.get('type').lower(),
             "pattern": data.get('pattern'),
@@ -828,6 +829,7 @@ def create_policy():
         }
         POLICIES_DATA.append(new_policy)
 
+    # CRITICAL: Save and ensure the global variable is updated
     save_data('policies.json', POLICIES_DATA)
     return jsonify({"status": "success"})
 

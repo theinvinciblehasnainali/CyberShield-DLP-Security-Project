@@ -1,1 +1,20 @@
-[]
+[
+    {
+        "id": "TR-4149",
+        "type": "Phone number detection",
+        "file_name": "userfinance.txt",
+        "file_path": "D:\\DLP Project\\CyberShield-DLP-Security\\home\\user\\documents\\financial\\userfinance.txt",
+        "severity": "critical",
+        "status": "open",
+        "date_detected": "2025-12-24 14:25:59"
+    },
+    {
+        "id": "TR-7414",
+        "type": "Phone number detection",
+        "file_name": "Employee Details.xlsx",
+        "file_path": "D:\\DLP Project\\CyberShield-DLP-Security\\home\\downloads\\temp\\Employee Details.xlsx",
+        "severity": "critical",
+        "status": "open",
+        "date_detected": "2025-12-24 14:25:31"
+    }
+]
